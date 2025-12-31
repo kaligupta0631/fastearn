@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Dashboard - MSME Platform</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="wrapper">
+        <header class="top-bar">
+            <h1 class="brand">StartupAI</h1>
+            <nav>
+                <a href="index.html">← Back</a>
+                <button id="downloadBtn" class="download-btn">Download Report</button>
+            </nav>
+        </header>
+
+        <section class="dashboard">
+            <div class="stats-row">
+                <div class="stat-box">
+                    <h3>Investment</h3>
+                    <p id="invest">₹0</p>
+                </div>
+                <div class="stat-box">
+                    <h3>Revenue (Yr 1)</h3>
+                    <p id="revenue">₹0</p>
+                </div>
+                <div class="stat-box">
+                    <h3>Break-Even</h3>
+                    <p id="breakeven">0 months</p>
+                </div>
+                <div class="stat-box">
+                    <h3>Score</h3>
+                    <p id="score">0/100</p>
+                </div>
+            </div>
+
+            <div class="result-card">
+                <h2>Idea Analysis</h2>
+                <div id="analysisResult" class="result-text">Loading...</div>
+            </div>
+
+            <div class="result-card">
+                <h2>Financial Breakdown</h2>
+                <div class="finance-row">
+                    <div class="finance-box">
+                        <strong>Fixed Cost</strong>
+                        <span id="fixed">₹0</span>
+                    </div>
+                    <div class="finance-box">
+                        <strong>Variable Cost</strong>
+                        <span id="variable">₹0</span>
+                    </div>
+                    <div class="finance-box">
+                        <strong>Monthly Revenue</strong>
+                        <span id="monthly">₹0</span>
+                    </div>
+                    <div class="finance-box">
+                        <strong>Profitability</strong>
+                        <span id="profit">0 months</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-card">
+                <h2>Action Roadmap</h2>
+                <div id="roadmapResult" class="result-text">Loading...</div>
+            </div>
+
+            <div class="result-card">
+                <h2>Customer Insights</h2>
+                <div id="customerResult" class="result-text">Loading...</div>
+            </div>
+        </section>
+
+        <footer>
+            <p>AI-Powered MSME Platform © 2025</p>
+        </footer>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

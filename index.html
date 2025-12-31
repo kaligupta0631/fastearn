@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FastEarn | Strategic Income Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wrapper">
+
+    <header class="top-bar">
+        <div class="brand">FastEarn</div>
+        <nav>
+            <a href="#">Home</a>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="#about">About</a>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <h2>Data-Driven Income & Expense Analyzer</h2>
+        <p>Plan • Analyze • Grow your earnings through structured modeling</p>
+    </section>
+
+    <section class="content-area">
+
+        <div class="input-form">
+            <form id="incomeForm">
+
+                <div class="field">
+                    <label for="name">Your Name</label>
+                    <input type="text" id="name" placeholder="Enter your name" required>
+                </div>
+
+                <div class="field">
+                    <label for="income">Monthly Income (₹)</label>
+                    <input type="number" id="income" placeholder="Enter income" required>
+                </div>
+
+                <div class="field">
+                    <label for="expense">Monthly Expenses (₹)</label>
+                    <input type="number" id="expense" placeholder="Enter expenses" required>
+                </div>
+
+                <div class="field">
+                    <label for="goal">Financial Goal</label>
+                    <select id="goal" required>
+                        <option value="">Select goal</option>
+                        <option value="saving">Savings</option>
+                        <option value="investment">Investment</option>
+                        <option value="debt">Debt Reduction</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="notes">Additional Parameters</label>
+                    <textarea id="notes" rows="3" placeholder="Optional"></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    Generate Financial Analysis
+                </button>
+
+            </form>
+        </div>
+
+        <div class="loader hide" id="loader">
+            <div class="spinner"></div>
+            <p>Processing metrics and generating projections...</p>
+        </div>
+
+    </section>
+
+    <footer>
+        <p>© 2025 FastEarn | Business Intelligence Systems</p>
+    </footer>
+
+</div>
+
+<script>
+    const form = document.getElementById("incomeForm");
+    const loader = document.getElementById("loader");
+
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        loader.classList.remove("hide");
+
+        setTimeout(() => {
+            window.location.href = "dashboard.html";
+        }, 2000);
+    });
+</script>
+
+</body>
+</html>
