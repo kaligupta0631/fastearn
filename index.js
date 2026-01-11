@@ -1,71 +1,54 @@
 // src/index.ts
-import { focusManager } from "./focusManager.js";
-import {
-  defaultShouldDehydrateMutation,
-  defaultShouldDehydrateQuery,
-  dehydrate,
-  hydrate
-} from "./hydration.js";
-import { InfiniteQueryObserver } from "./infiniteQueryObserver.js";
-import { MutationCache } from "./mutationCache.js";
-import { MutationObserver } from "./mutationObserver.js";
-import { defaultScheduler, notifyManager } from "./notifyManager.js";
-import { onlineManager } from "./onlineManager.js";
-import { QueriesObserver } from "./queriesObserver.js";
-import { QueryCache } from "./queryCache.js";
-import { QueryClient } from "./queryClient.js";
-import { QueryObserver } from "./queryObserver.js";
-import { CancelledError, isCancelledError } from "./retryer.js";
-import {
-  timeoutManager
-} from "./timeoutManager.js";
-import {
-  hashKey,
-  isServer,
-  keepPreviousData,
-  matchMutation,
-  matchQuery,
-  noop,
-  partialMatchKey,
-  replaceEqualDeep,
-  shouldThrowError,
-  skipToken
-} from "./utils.js";
-import { streamedQuery } from "./streamedQuery.js";
-import { Mutation } from "./mutation.js";
-import { Query } from "./query.js";
+export * from "@tanstack/query-core";
 export * from "./types.js";
+import { useQueries } from "./useQueries.js";
+import { useQuery } from "./useQuery.js";
+import { useSuspenseQuery } from "./useSuspenseQuery.js";
+import { useSuspenseInfiniteQuery } from "./useSuspenseInfiniteQuery.js";
+import { useSuspenseQueries } from "./useSuspenseQueries.js";
+import { usePrefetchQuery } from "./usePrefetchQuery.js";
+import { usePrefetchInfiniteQuery } from "./usePrefetchInfiniteQuery.js";
+import { queryOptions } from "./queryOptions.js";
+import { infiniteQueryOptions } from "./infiniteQueryOptions.js";
+import {
+  QueryClientContext,
+  QueryClientProvider,
+  useQueryClient
+} from "./QueryClientProvider.js";
+import { HydrationBoundary } from "./HydrationBoundary.js";
+import {
+  QueryErrorResetBoundary,
+  useQueryErrorResetBoundary
+} from "./QueryErrorResetBoundary.js";
+import { useIsFetching } from "./useIsFetching.js";
+import { useIsMutating, useMutationState } from "./useMutationState.js";
+import { useMutation } from "./useMutation.js";
+import { mutationOptions } from "./mutationOptions.js";
+import { useInfiniteQuery } from "./useInfiniteQuery.js";
+import { useIsRestoring, IsRestoringProvider } from "./IsRestoringProvider.js";
 export {
-  CancelledError,
-  InfiniteQueryObserver,
-  Mutation,
-  MutationCache,
-  MutationObserver,
-  QueriesObserver,
-  Query,
-  QueryCache,
-  QueryClient,
-  QueryObserver,
-  defaultScheduler,
-  defaultShouldDehydrateMutation,
-  defaultShouldDehydrateQuery,
-  dehydrate,
-  streamedQuery as experimental_streamedQuery,
-  focusManager,
-  hashKey,
-  hydrate,
-  isCancelledError,
-  isServer,
-  keepPreviousData,
-  matchMutation,
-  matchQuery,
-  noop,
-  notifyManager,
-  onlineManager,
-  partialMatchKey,
-  replaceEqualDeep,
-  shouldThrowError,
-  skipToken,
-  timeoutManager
+  HydrationBoundary,
+  IsRestoringProvider,
+  QueryClientContext,
+  QueryClientProvider,
+  QueryErrorResetBoundary,
+  infiniteQueryOptions,
+  mutationOptions,
+  queryOptions,
+  useInfiniteQuery,
+  useIsFetching,
+  useIsMutating,
+  useIsRestoring,
+  useMutation,
+  useMutationState,
+  usePrefetchInfiniteQuery,
+  usePrefetchQuery,
+  useQueries,
+  useQuery,
+  useQueryClient,
+  useQueryErrorResetBoundary,
+  useSuspenseInfiniteQuery,
+  useSuspenseQueries,
+  useSuspenseQuery
 };
 //# sourceMappingURL=index.js.map
