@@ -57,12 +57,11 @@ function pendingThenable() {
   return thenable;
 }
 function tryResolveSync(promise) {
-  var _a;
   let data;
-  (_a = promise.then((result) => {
+  promise.then((result) => {
     data = result;
     return result;
-  }, import_utils.noop)) == null ? void 0 : _a.catch(import_utils.noop);
+  }, import_utils.noop)?.catch(import_utils.noop);
   if (data !== void 0) {
     return { data };
   }

@@ -1,9 +1,3 @@
-import {
-  __privateAdd,
-  __privateGet,
-  __privateSet
-} from "./chunk-PXG64RU4.js";
-
 // src/timeoutManager.ts
 var defaultTimeoutProvider = {
   // We need the wrapper function syntax below instead of direct references to
@@ -21,53 +15,48 @@ var defaultTimeoutProvider = {
   setInterval: (callback, delay) => setInterval(callback, delay),
   clearInterval: (intervalId) => clearInterval(intervalId)
 };
-var _provider, _providerCalled;
 var TimeoutManager = class {
-  constructor() {
-    // We cannot have TimeoutManager<T> as we must instantiate it with a concrete
-    // type at app boot; and if we leave that type, then any new timer provider
-    // would need to support ReturnType<typeof setTimeout>, which is infeasible.
-    //
-    // We settle for type safety for the TimeoutProvider type, and accept that
-    // this class is unsafe internally to allow for extension.
-    __privateAdd(this, _provider, defaultTimeoutProvider);
-    __privateAdd(this, _providerCalled, false);
-  }
+  // We cannot have TimeoutManager<T> as we must instantiate it with a concrete
+  // type at app boot; and if we leave that type, then any new timer provider
+  // would need to support ReturnType<typeof setTimeout>, which is infeasible.
+  //
+  // We settle for type safety for the TimeoutProvider type, and accept that
+  // this class is unsafe internally to allow for extension.
+  #provider = defaultTimeoutProvider;
+  #providerCalled = false;
   setTimeoutProvider(provider) {
     if (process.env.NODE_ENV !== "production") {
-      if (__privateGet(this, _providerCalled) && provider !== __privateGet(this, _provider)) {
+      if (this.#providerCalled && provider !== this.#provider) {
         console.error(
           `[timeoutManager]: Switching provider after calls to previous provider might result in unexpected behavior.`,
-          { previous: __privateGet(this, _provider), provider }
+          { previous: this.#provider, provider }
         );
       }
     }
-    __privateSet(this, _provider, provider);
+    this.#provider = provider;
     if (process.env.NODE_ENV !== "production") {
-      __privateSet(this, _providerCalled, false);
+      this.#providerCalled = false;
     }
   }
   setTimeout(callback, delay) {
     if (process.env.NODE_ENV !== "production") {
-      __privateSet(this, _providerCalled, true);
+      this.#providerCalled = true;
     }
-    return __privateGet(this, _provider).setTimeout(callback, delay);
+    return this.#provider.setTimeout(callback, delay);
   }
   clearTimeout(timeoutId) {
-    __privateGet(this, _provider).clearTimeout(timeoutId);
+    this.#provider.clearTimeout(timeoutId);
   }
   setInterval(callback, delay) {
     if (process.env.NODE_ENV !== "production") {
-      __privateSet(this, _providerCalled, true);
+      this.#providerCalled = true;
     }
-    return __privateGet(this, _provider).setInterval(callback, delay);
+    return this.#provider.setInterval(callback, delay);
   }
   clearInterval(intervalId) {
-    __privateGet(this, _provider).clearInterval(intervalId);
+    this.#provider.clearInterval(intervalId);
   }
 };
-_provider = new WeakMap();
-_providerCalled = new WeakMap();
 var timeoutManager = new TimeoutManager();
 function systemSetTimeoutZero(callback) {
   setTimeout(callback, 0);

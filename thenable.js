@@ -1,5 +1,3 @@
-import "./chunk-PXG64RU4.js";
-
 // src/thenable.ts
 import { noop } from "./utils.js";
 function pendingThenable() {
@@ -34,12 +32,11 @@ function pendingThenable() {
   return thenable;
 }
 function tryResolveSync(promise) {
-  var _a;
   let data;
-  (_a = promise.then((result) => {
+  promise.then((result) => {
     data = result;
     return result;
-  }, noop)) == null ? void 0 : _a.catch(noop);
+  }, noop)?.catch(noop);
   if (data !== void 0) {
     return { data };
   }
