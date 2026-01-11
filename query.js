@@ -1,10 +1,3 @@
-import {
-  __privateAdd,
-  __privateGet,
-  __privateMethod,
-  __privateSet
-} from "./chunk-PXG64RU4.js";
-
 // src/query.ts
 import {
   ensureQueryFn,
@@ -18,39 +11,36 @@ import {
 import { notifyManager } from "./notifyManager.js";
 import { CancelledError, canFetch, createRetryer } from "./retryer.js";
 import { Removable } from "./removable.js";
-var _initialState, _revertState, _cache, _client, _retryer, _defaultOptions, _abortSignalConsumed, _Query_instances, dispatch_fn;
 var Query = class extends Removable {
+  #initialState;
+  #revertState;
+  #cache;
+  #client;
+  #retryer;
+  #defaultOptions;
+  #abortSignalConsumed;
   constructor(config) {
     super();
-    __privateAdd(this, _Query_instances);
-    __privateAdd(this, _initialState);
-    __privateAdd(this, _revertState);
-    __privateAdd(this, _cache);
-    __privateAdd(this, _client);
-    __privateAdd(this, _retryer);
-    __privateAdd(this, _defaultOptions);
-    __privateAdd(this, _abortSignalConsumed);
-    __privateSet(this, _abortSignalConsumed, false);
-    __privateSet(this, _defaultOptions, config.defaultOptions);
+    this.#abortSignalConsumed = false;
+    this.#defaultOptions = config.defaultOptions;
     this.setOptions(config.options);
     this.observers = [];
-    __privateSet(this, _client, config.client);
-    __privateSet(this, _cache, __privateGet(this, _client).getQueryCache());
+    this.#client = config.client;
+    this.#cache = this.#client.getQueryCache();
     this.queryKey = config.queryKey;
     this.queryHash = config.queryHash;
-    __privateSet(this, _initialState, getDefaultState(this.options));
-    this.state = config.state ?? __privateGet(this, _initialState);
+    this.#initialState = getDefaultState(this.options);
+    this.state = config.state ?? this.#initialState;
     this.scheduleGc();
   }
   get meta() {
     return this.options.meta;
   }
   get promise() {
-    var _a;
-    return (_a = __privateGet(this, _retryer)) == null ? void 0 : _a.promise;
+    return this.#retryer?.promise;
   }
   setOptions(options) {
-    this.options = { ...__privateGet(this, _defaultOptions), ...options };
+    this.options = { ...this.#defaultOptions, ...options };
     this.updateGcTime(this.options.gcTime);
     if (this.state && this.state.data === void 0) {
       const defaultState = getDefaultState(this.options);
@@ -58,32 +48,31 @@ var Query = class extends Removable {
         this.setState(
           successState(defaultState.data, defaultState.dataUpdatedAt)
         );
-        __privateSet(this, _initialState, defaultState);
+        this.#initialState = defaultState;
       }
     }
   }
   optionalRemove() {
     if (!this.observers.length && this.state.fetchStatus === "idle") {
-      __privateGet(this, _cache).remove(this);
+      this.#cache.remove(this);
     }
   }
   setData(newData, options) {
     const data = replaceData(this.state.data, newData, this.options);
-    __privateMethod(this, _Query_instances, dispatch_fn).call(this, {
+    this.#dispatch({
       data,
       type: "success",
-      dataUpdatedAt: options == null ? void 0 : options.updatedAt,
-      manual: options == null ? void 0 : options.manual
+      dataUpdatedAt: options?.updatedAt,
+      manual: options?.manual
     });
     return data;
   }
   setState(state, setStateOptions) {
-    __privateMethod(this, _Query_instances, dispatch_fn).call(this, { type: "setState", state, setStateOptions });
+    this.#dispatch({ type: "setState", state, setStateOptions });
   }
   cancel(options) {
-    var _a, _b;
-    const promise = (_a = __privateGet(this, _retryer)) == null ? void 0 : _a.promise;
-    (_b = __privateGet(this, _retryer)) == null ? void 0 : _b.cancel(options);
+    const promise = this.#retryer?.promise;
+    this.#retryer?.cancel(options);
     return promise ? promise.then(noop).catch(noop) : Promise.resolve();
   }
   destroy() {
@@ -92,7 +81,7 @@ var Query = class extends Removable {
   }
   reset() {
     this.destroy();
-    this.setState(__privateGet(this, _initialState));
+    this.setState(this.#initialState);
   }
   isActive() {
     return this.observers.some(
@@ -134,38 +123,36 @@ var Query = class extends Removable {
     return !timeUntilStale(this.state.dataUpdatedAt, staleTime);
   }
   onFocus() {
-    var _a;
     const observer = this.observers.find((x) => x.shouldFetchOnWindowFocus());
-    observer == null ? void 0 : observer.refetch({ cancelRefetch: false });
-    (_a = __privateGet(this, _retryer)) == null ? void 0 : _a.continue();
+    observer?.refetch({ cancelRefetch: false });
+    this.#retryer?.continue();
   }
   onOnline() {
-    var _a;
     const observer = this.observers.find((x) => x.shouldFetchOnReconnect());
-    observer == null ? void 0 : observer.refetch({ cancelRefetch: false });
-    (_a = __privateGet(this, _retryer)) == null ? void 0 : _a.continue();
+    observer?.refetch({ cancelRefetch: false });
+    this.#retryer?.continue();
   }
   addObserver(observer) {
     if (!this.observers.includes(observer)) {
       this.observers.push(observer);
       this.clearGcTimeout();
-      __privateGet(this, _cache).notify({ type: "observerAdded", query: this, observer });
+      this.#cache.notify({ type: "observerAdded", query: this, observer });
     }
   }
   removeObserver(observer) {
     if (this.observers.includes(observer)) {
       this.observers = this.observers.filter((x) => x !== observer);
       if (!this.observers.length) {
-        if (__privateGet(this, _retryer)) {
-          if (__privateGet(this, _abortSignalConsumed)) {
-            __privateGet(this, _retryer).cancel({ revert: true });
+        if (this.#retryer) {
+          if (this.#abortSignalConsumed) {
+            this.#retryer.cancel({ revert: true });
           } else {
-            __privateGet(this, _retryer).cancelRetry();
+            this.#retryer.cancelRetry();
           }
         }
         this.scheduleGc();
       }
-      __privateGet(this, _cache).notify({ type: "observerRemoved", query: this, observer });
+      this.#cache.notify({ type: "observerRemoved", query: this, observer });
     }
   }
   getObserversCount() {
@@ -173,20 +160,19 @@ var Query = class extends Removable {
   }
   invalidate() {
     if (!this.state.isInvalidated) {
-      __privateMethod(this, _Query_instances, dispatch_fn).call(this, { type: "invalidate" });
+      this.#dispatch({ type: "invalidate" });
     }
   }
   async fetch(options, fetchOptions) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
     if (this.state.fetchStatus !== "idle" && // If the promise in the retyer is already rejected, we have to definitely
     // re-start the fetch; there is a chance that the query is still in a
     // pending state when that happens
-    ((_a = __privateGet(this, _retryer)) == null ? void 0 : _a.status()) !== "rejected") {
-      if (this.state.data !== void 0 && (fetchOptions == null ? void 0 : fetchOptions.cancelRefetch)) {
+    this.#retryer?.status() !== "rejected") {
+      if (this.state.data !== void 0 && fetchOptions?.cancelRefetch) {
         this.cancel({ silent: true });
-      } else if (__privateGet(this, _retryer)) {
-        __privateGet(this, _retryer).continueRetry();
-        return __privateGet(this, _retryer).promise;
+      } else if (this.#retryer) {
+        this.#retryer.continueRetry();
+        return this.#retryer.promise;
       }
     }
     if (options) {
@@ -210,7 +196,7 @@ var Query = class extends Removable {
       Object.defineProperty(object, "signal", {
         enumerable: true,
         get: () => {
-          __privateSet(this, _abortSignalConsumed, true);
+          this.#abortSignalConsumed = true;
           return abortController.signal;
         }
       });
@@ -219,7 +205,7 @@ var Query = class extends Removable {
       const queryFn = ensureQueryFn(this.options, fetchOptions);
       const createQueryFnContext = () => {
         const queryFnContext2 = {
-          client: __privateGet(this, _client),
+          client: this.#client,
           queryKey: this.queryKey,
           meta: this.meta
         };
@@ -227,7 +213,7 @@ var Query = class extends Removable {
         return queryFnContext2;
       };
       const queryFnContext = createQueryFnContext();
-      __privateSet(this, _abortSignalConsumed, false);
+      this.#abortSignalConsumed = false;
       if (this.options.persister) {
         return this.options.persister(
           queryFn,
@@ -242,7 +228,7 @@ var Query = class extends Removable {
         fetchOptions,
         options: this.options,
         queryKey: this.queryKey,
-        client: __privateGet(this, _client),
+        client: this.#client,
         state: this.state,
         fetchFn
       };
@@ -250,39 +236,39 @@ var Query = class extends Removable {
       return context2;
     };
     const context = createFetchContext();
-    (_b = this.options.behavior) == null ? void 0 : _b.onFetch(context, this);
-    __privateSet(this, _revertState, this.state);
-    if (this.state.fetchStatus === "idle" || this.state.fetchMeta !== ((_c = context.fetchOptions) == null ? void 0 : _c.meta)) {
-      __privateMethod(this, _Query_instances, dispatch_fn).call(this, { type: "fetch", meta: (_d = context.fetchOptions) == null ? void 0 : _d.meta });
+    this.options.behavior?.onFetch(context, this);
+    this.#revertState = this.state;
+    if (this.state.fetchStatus === "idle" || this.state.fetchMeta !== context.fetchOptions?.meta) {
+      this.#dispatch({ type: "fetch", meta: context.fetchOptions?.meta });
     }
-    __privateSet(this, _retryer, createRetryer({
-      initialPromise: fetchOptions == null ? void 0 : fetchOptions.initialPromise,
+    this.#retryer = createRetryer({
+      initialPromise: fetchOptions?.initialPromise,
       fn: context.fetchFn,
       onCancel: (error) => {
         if (error instanceof CancelledError && error.revert) {
           this.setState({
-            ...__privateGet(this, _revertState),
+            ...this.#revertState,
             fetchStatus: "idle"
           });
         }
         abortController.abort();
       },
       onFail: (failureCount, error) => {
-        __privateMethod(this, _Query_instances, dispatch_fn).call(this, { type: "failed", failureCount, error });
+        this.#dispatch({ type: "failed", failureCount, error });
       },
       onPause: () => {
-        __privateMethod(this, _Query_instances, dispatch_fn).call(this, { type: "pause" });
+        this.#dispatch({ type: "pause" });
       },
       onContinue: () => {
-        __privateMethod(this, _Query_instances, dispatch_fn).call(this, { type: "continue" });
+        this.#dispatch({ type: "continue" });
       },
       retry: context.options.retry,
       retryDelay: context.options.retryDelay,
       networkMode: context.options.networkMode,
       canRun: () => true
-    }));
+    });
     try {
-      const data = await __privateGet(this, _retryer).start();
+      const data = await this.#retryer.start();
       if (data === void 0) {
         if (process.env.NODE_ENV !== "production") {
           console.error(
@@ -292,9 +278,8 @@ var Query = class extends Removable {
         throw new Error(`${this.queryHash} data is undefined`);
       }
       this.setData(data);
-      (_f = (_e = __privateGet(this, _cache).config).onSuccess) == null ? void 0 : _f.call(_e, data, this);
-      (_h = (_g = __privateGet(this, _cache).config).onSettled) == null ? void 0 : _h.call(
-        _g,
+      this.#cache.config.onSuccess?.(data, this);
+      this.#cache.config.onSettled?.(
         data,
         this.state.error,
         this
@@ -303,7 +288,7 @@ var Query = class extends Removable {
     } catch (error) {
       if (error instanceof CancelledError) {
         if (error.silent) {
-          return __privateGet(this, _retryer).promise;
+          return this.#retryer.promise;
         } else if (error.revert) {
           if (this.state.data === void 0) {
             throw error;
@@ -311,17 +296,15 @@ var Query = class extends Removable {
           return this.state.data;
         }
       }
-      __privateMethod(this, _Query_instances, dispatch_fn).call(this, {
+      this.#dispatch({
         type: "error",
         error
       });
-      (_j = (_i = __privateGet(this, _cache).config).onError) == null ? void 0 : _j.call(
-        _i,
+      this.#cache.config.onError?.(
         error,
         this
       );
-      (_l = (_k = __privateGet(this, _cache).config).onSettled) == null ? void 0 : _l.call(
-        _k,
+      this.#cache.config.onSettled?.(
         this.state.data,
         error,
         this
@@ -331,87 +314,79 @@ var Query = class extends Removable {
       this.scheduleGc();
     }
   }
-};
-_initialState = new WeakMap();
-_revertState = new WeakMap();
-_cache = new WeakMap();
-_client = new WeakMap();
-_retryer = new WeakMap();
-_defaultOptions = new WeakMap();
-_abortSignalConsumed = new WeakMap();
-_Query_instances = new WeakSet();
-dispatch_fn = function(action) {
-  const reducer = (state) => {
-    switch (action.type) {
-      case "failed":
-        return {
-          ...state,
-          fetchFailureCount: action.failureCount,
-          fetchFailureReason: action.error
-        };
-      case "pause":
-        return {
-          ...state,
-          fetchStatus: "paused"
-        };
-      case "continue":
-        return {
-          ...state,
-          fetchStatus: "fetching"
-        };
-      case "fetch":
-        return {
-          ...state,
-          ...fetchState(state.data, this.options),
-          fetchMeta: action.meta ?? null
-        };
-      case "success":
-        const newState = {
-          ...state,
-          ...successState(action.data, action.dataUpdatedAt),
-          dataUpdateCount: state.dataUpdateCount + 1,
-          ...!action.manual && {
+  #dispatch(action) {
+    const reducer = (state) => {
+      switch (action.type) {
+        case "failed":
+          return {
+            ...state,
+            fetchFailureCount: action.failureCount,
+            fetchFailureReason: action.error
+          };
+        case "pause":
+          return {
+            ...state,
+            fetchStatus: "paused"
+          };
+        case "continue":
+          return {
+            ...state,
+            fetchStatus: "fetching"
+          };
+        case "fetch":
+          return {
+            ...state,
+            ...fetchState(state.data, this.options),
+            fetchMeta: action.meta ?? null
+          };
+        case "success":
+          const newState = {
+            ...state,
+            ...successState(action.data, action.dataUpdatedAt),
+            dataUpdateCount: state.dataUpdateCount + 1,
+            ...!action.manual && {
+              fetchStatus: "idle",
+              fetchFailureCount: 0,
+              fetchFailureReason: null
+            }
+          };
+          this.#revertState = action.manual ? newState : void 0;
+          return newState;
+        case "error":
+          const error = action.error;
+          return {
+            ...state,
+            error,
+            errorUpdateCount: state.errorUpdateCount + 1,
+            errorUpdatedAt: Date.now(),
+            fetchFailureCount: state.fetchFailureCount + 1,
+            fetchFailureReason: error,
             fetchStatus: "idle",
-            fetchFailureCount: 0,
-            fetchFailureReason: null
-          }
-        };
-        __privateSet(this, _revertState, action.manual ? newState : void 0);
-        return newState;
-      case "error":
-        const error = action.error;
-        return {
-          ...state,
-          error,
-          errorUpdateCount: state.errorUpdateCount + 1,
-          errorUpdatedAt: Date.now(),
-          fetchFailureCount: state.fetchFailureCount + 1,
-          fetchFailureReason: error,
-          fetchStatus: "idle",
-          status: "error",
-          // flag existing data as invalidated if we get a background error
-          // note that "no data" always means stale so we can set unconditionally here
-          isInvalidated: true
-        };
-      case "invalidate":
-        return {
-          ...state,
-          isInvalidated: true
-        };
-      case "setState":
-        return {
-          ...state,
-          ...action.state
-        };
-    }
-  };
-  this.state = reducer(this.state);
-  notifyManager.batch(() => {
-    this.observers.forEach((observer) => {
-      observer.onQueryUpdate();
+            status: "error",
+            // flag existing data as invalidated if we get a background error
+            // note that "no data" always means stale so we can set unconditionally here
+            isInvalidated: true
+          };
+        case "invalidate":
+          return {
+            ...state,
+            isInvalidated: true
+          };
+        case "setState":
+          return {
+            ...state,
+            ...action.state
+          };
+      }
+    };
+    this.state = reducer(this.state);
+    notifyManager.batch(() => {
+      this.observers.forEach((observer) => {
+        observer.onQueryUpdate();
+      });
+      this.#cache.notify({ query: this, type: "updated", action });
     });
-    __privateGet(this, _cache).notify({ query: this, type: "updated", action });
-  });
+  }
 };
 function fetchState(data, options) {
   return {

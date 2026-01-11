@@ -1,5 +1,3 @@
-import "./chunk-PXG64RU4.js";
-
 // src/retryer.ts
 import { focusManager } from "./focusManager.js";
 import { onlineManager } from "./onlineManager.js";
@@ -14,8 +12,8 @@ function canFetch(networkMode) {
 var CancelledError = class extends Error {
   constructor(options) {
     super("CancelledError");
-    this.revert = options == null ? void 0 : options.revert;
-    this.silent = options == null ? void 0 : options.silent;
+    this.revert = options?.revert;
+    this.silent = options?.silent;
   }
 };
 function isCancelledError(value) {
@@ -28,11 +26,10 @@ function createRetryer(config) {
   const thenable = pendingThenable();
   const isResolved = () => thenable.status !== "pending";
   const cancel = (cancelOptions) => {
-    var _a;
     if (!isResolved()) {
       const error = new CancelledError(cancelOptions);
       reject(error);
-      (_a = config.onCancel) == null ? void 0 : _a.call(config, error);
+      config.onCancel?.(error);
     }
   };
   const cancelRetry = () => {
@@ -45,30 +42,28 @@ function createRetryer(config) {
   const canStart = () => canFetch(config.networkMode) && config.canRun();
   const resolve = (value) => {
     if (!isResolved()) {
-      continueFn == null ? void 0 : continueFn();
+      continueFn?.();
       thenable.resolve(value);
     }
   };
   const reject = (value) => {
     if (!isResolved()) {
-      continueFn == null ? void 0 : continueFn();
+      continueFn?.();
       thenable.reject(value);
     }
   };
   const pause = () => {
     return new Promise((continueResolve) => {
-      var _a;
       continueFn = (value) => {
         if (isResolved() || canContinue()) {
           continueResolve(value);
         }
       };
-      (_a = config.onPause) == null ? void 0 : _a.call(config);
+      config.onPause?.();
     }).then(() => {
-      var _a;
       continueFn = void 0;
       if (!isResolved()) {
-        (_a = config.onContinue) == null ? void 0 : _a.call(config);
+        config.onContinue?.();
       }
     });
   };
@@ -84,7 +79,6 @@ function createRetryer(config) {
       promiseOrValue = Promise.reject(error);
     }
     Promise.resolve(promiseOrValue).then(resolve).catch((error) => {
-      var _a;
       if (isResolved()) {
         return;
       }
@@ -97,7 +91,7 @@ function createRetryer(config) {
         return;
       }
       failureCount++;
-      (_a = config.onFail) == null ? void 0 : _a.call(config, failureCount, error);
+      config.onFail?.(failureCount, error);
       sleep(delay).then(() => {
         return canContinue() ? void 0 : pause();
       }).then(() => {
@@ -114,7 +108,7 @@ function createRetryer(config) {
     status: () => thenable.status,
     cancel,
     continue: () => {
-      continueFn == null ? void 0 : continueFn();
+      continueFn?.();
       return thenable;
     },
     cancelRetry,

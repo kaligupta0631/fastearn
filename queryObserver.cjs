@@ -3,9 +3,6 @@ var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __typeError = (msg) => {
-  throw TypeError(msg);
-};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -19,11 +16,6 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
-var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
-var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
-var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
-var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
 
 // src/queryObserver.ts
 var queryObserver_exports = {};
@@ -38,47 +30,45 @@ var import_subscribable = require("./subscribable.cjs");
 var import_thenable = require("./thenable.cjs");
 var import_utils = require("./utils.cjs");
 var import_timeoutManager = require("./timeoutManager.cjs");
-var _client, _currentQuery, _currentQueryInitialState, _currentResult, _currentResultState, _currentResultOptions, _currentThenable, _selectError, _selectFn, _selectResult, _lastQueryWithDefinedData, _staleTimeoutId, _refetchIntervalId, _currentRefetchInterval, _trackedProps, _QueryObserver_instances, executeFetch_fn, updateStaleTimeout_fn, computeRefetchInterval_fn, updateRefetchInterval_fn, updateTimers_fn, clearStaleTimeout_fn, clearRefetchInterval_fn, updateQuery_fn, notify_fn;
 var QueryObserver = class extends import_subscribable.Subscribable {
   constructor(client, options) {
     super();
     this.options = options;
-    __privateAdd(this, _QueryObserver_instances);
-    __privateAdd(this, _client);
-    __privateAdd(this, _currentQuery);
-    __privateAdd(this, _currentQueryInitialState);
-    __privateAdd(this, _currentResult);
-    __privateAdd(this, _currentResultState);
-    __privateAdd(this, _currentResultOptions);
-    __privateAdd(this, _currentThenable);
-    __privateAdd(this, _selectError);
-    __privateAdd(this, _selectFn);
-    __privateAdd(this, _selectResult);
-    // This property keeps track of the last query with defined data.
-    // It will be used to pass the previous data and query to the placeholder function between renders.
-    __privateAdd(this, _lastQueryWithDefinedData);
-    __privateAdd(this, _staleTimeoutId);
-    __privateAdd(this, _refetchIntervalId);
-    __privateAdd(this, _currentRefetchInterval);
-    __privateAdd(this, _trackedProps, /* @__PURE__ */ new Set());
-    __privateSet(this, _client, client);
-    __privateSet(this, _selectError, null);
-    __privateSet(this, _currentThenable, (0, import_thenable.pendingThenable)());
+    this.#client = client;
+    this.#selectError = null;
+    this.#currentThenable = (0, import_thenable.pendingThenable)();
     this.bindMethods();
     this.setOptions(options);
   }
+  #client;
+  #currentQuery = void 0;
+  #currentQueryInitialState = void 0;
+  #currentResult = void 0;
+  #currentResultState;
+  #currentResultOptions;
+  #currentThenable;
+  #selectError;
+  #selectFn;
+  #selectResult;
+  // This property keeps track of the last query with defined data.
+  // It will be used to pass the previous data and query to the placeholder function between renders.
+  #lastQueryWithDefinedData;
+  #staleTimeoutId;
+  #refetchIntervalId;
+  #currentRefetchInterval;
+  #trackedProps = /* @__PURE__ */ new Set();
   bindMethods() {
     this.refetch = this.refetch.bind(this);
   }
   onSubscribe() {
     if (this.listeners.size === 1) {
-      __privateGet(this, _currentQuery).addObserver(this);
-      if (shouldFetchOnMount(__privateGet(this, _currentQuery), this.options)) {
-        __privateMethod(this, _QueryObserver_instances, executeFetch_fn).call(this);
+      this.#currentQuery.addObserver(this);
+      if (shouldFetchOnMount(this.#currentQuery, this.options)) {
+        this.#executeFetch();
       } else {
         this.updateResult();
       }
-      __privateMethod(this, _QueryObserver_instances, updateTimers_fn).call(this);
+      this.#updateTimers();
     }
   }
   onUnsubscribe() {
@@ -88,82 +78,82 @@ var QueryObserver = class extends import_subscribable.Subscribable {
   }
   shouldFetchOnReconnect() {
     return shouldFetchOn(
-      __privateGet(this, _currentQuery),
+      this.#currentQuery,
       this.options,
       this.options.refetchOnReconnect
     );
   }
   shouldFetchOnWindowFocus() {
     return shouldFetchOn(
-      __privateGet(this, _currentQuery),
+      this.#currentQuery,
       this.options,
       this.options.refetchOnWindowFocus
     );
   }
   destroy() {
     this.listeners = /* @__PURE__ */ new Set();
-    __privateMethod(this, _QueryObserver_instances, clearStaleTimeout_fn).call(this);
-    __privateMethod(this, _QueryObserver_instances, clearRefetchInterval_fn).call(this);
-    __privateGet(this, _currentQuery).removeObserver(this);
+    this.#clearStaleTimeout();
+    this.#clearRefetchInterval();
+    this.#currentQuery.removeObserver(this);
   }
   setOptions(options) {
     const prevOptions = this.options;
-    const prevQuery = __privateGet(this, _currentQuery);
-    this.options = __privateGet(this, _client).defaultQueryOptions(options);
-    if (this.options.enabled !== void 0 && typeof this.options.enabled !== "boolean" && typeof this.options.enabled !== "function" && typeof (0, import_utils.resolveEnabled)(this.options.enabled, __privateGet(this, _currentQuery)) !== "boolean") {
+    const prevQuery = this.#currentQuery;
+    this.options = this.#client.defaultQueryOptions(options);
+    if (this.options.enabled !== void 0 && typeof this.options.enabled !== "boolean" && typeof this.options.enabled !== "function" && typeof (0, import_utils.resolveEnabled)(this.options.enabled, this.#currentQuery) !== "boolean") {
       throw new Error(
         "Expected enabled to be a boolean or a callback that returns a boolean"
       );
     }
-    __privateMethod(this, _QueryObserver_instances, updateQuery_fn).call(this);
-    __privateGet(this, _currentQuery).setOptions(this.options);
+    this.#updateQuery();
+    this.#currentQuery.setOptions(this.options);
     if (prevOptions._defaulted && !(0, import_utils.shallowEqualObjects)(this.options, prevOptions)) {
-      __privateGet(this, _client).getQueryCache().notify({
+      this.#client.getQueryCache().notify({
         type: "observerOptionsUpdated",
-        query: __privateGet(this, _currentQuery),
+        query: this.#currentQuery,
         observer: this
       });
     }
     const mounted = this.hasListeners();
     if (mounted && shouldFetchOptionally(
-      __privateGet(this, _currentQuery),
+      this.#currentQuery,
       prevQuery,
       this.options,
       prevOptions
     )) {
-      __privateMethod(this, _QueryObserver_instances, executeFetch_fn).call(this);
+      this.#executeFetch();
     }
     this.updateResult();
-    if (mounted && (__privateGet(this, _currentQuery) !== prevQuery || (0, import_utils.resolveEnabled)(this.options.enabled, __privateGet(this, _currentQuery)) !== (0, import_utils.resolveEnabled)(prevOptions.enabled, __privateGet(this, _currentQuery)) || (0, import_utils.resolveStaleTime)(this.options.staleTime, __privateGet(this, _currentQuery)) !== (0, import_utils.resolveStaleTime)(prevOptions.staleTime, __privateGet(this, _currentQuery)))) {
-      __privateMethod(this, _QueryObserver_instances, updateStaleTimeout_fn).call(this);
+    if (mounted && (this.#currentQuery !== prevQuery || (0, import_utils.resolveEnabled)(this.options.enabled, this.#currentQuery) !== (0, import_utils.resolveEnabled)(prevOptions.enabled, this.#currentQuery) || (0, import_utils.resolveStaleTime)(this.options.staleTime, this.#currentQuery) !== (0, import_utils.resolveStaleTime)(prevOptions.staleTime, this.#currentQuery))) {
+      this.#updateStaleTimeout();
     }
-    const nextRefetchInterval = __privateMethod(this, _QueryObserver_instances, computeRefetchInterval_fn).call(this);
-    if (mounted && (__privateGet(this, _currentQuery) !== prevQuery || (0, import_utils.resolveEnabled)(this.options.enabled, __privateGet(this, _currentQuery)) !== (0, import_utils.resolveEnabled)(prevOptions.enabled, __privateGet(this, _currentQuery)) || nextRefetchInterval !== __privateGet(this, _currentRefetchInterval))) {
-      __privateMethod(this, _QueryObserver_instances, updateRefetchInterval_fn).call(this, nextRefetchInterval);
+    const nextRefetchInterval = this.#computeRefetchInterval();
+    if (mounted && (this.#currentQuery !== prevQuery || (0, import_utils.resolveEnabled)(this.options.enabled, this.#currentQuery) !== (0, import_utils.resolveEnabled)(prevOptions.enabled, this.#currentQuery) || nextRefetchInterval !== this.#currentRefetchInterval)) {
+      this.#updateRefetchInterval(nextRefetchInterval);
     }
   }
   getOptimisticResult(options) {
-    const query = __privateGet(this, _client).getQueryCache().build(__privateGet(this, _client), options);
+    const query = this.#client.getQueryCache().build(this.#client, options);
     const result = this.createResult(query, options);
     if (shouldAssignObserverCurrentProperties(this, result)) {
-      __privateSet(this, _currentResult, result);
-      __privateSet(this, _currentResultOptions, this.options);
-      __privateSet(this, _currentResultState, __privateGet(this, _currentQuery).state);
+      this.#currentResult = result;
+      this.#currentResultOptions = this.options;
+      this.#currentResultState = this.#currentQuery.state;
     }
     return result;
   }
   getCurrentResult() {
-    return __privateGet(this, _currentResult);
+    return this.#currentResult;
   }
   trackResult(result, onPropTracked) {
     return new Proxy(result, {
       get: (target, key) => {
         this.trackProp(key);
-        onPropTracked == null ? void 0 : onPropTracked(key);
+        onPropTracked?.(key);
         if (key === "promise") {
           this.trackProp("data");
-          if (!this.options.experimental_prefetchInRender && __privateGet(this, _currentThenable).status === "pending") {
-            __privateGet(this, _currentThenable).reject(
+          if (!this.options.experimental_prefetchInRender && this.#currentThenable.status === "pending") {
+            this.#currentThenable.reject(
               new Error(
                 "experimental_prefetchInRender feature flag is not enabled"
               )
@@ -175,10 +165,10 @@ var QueryObserver = class extends import_subscribable.Subscribable {
     });
   }
   trackProp(key) {
-    __privateGet(this, _trackedProps).add(key);
+    this.#trackedProps.add(key);
   }
   getCurrentQuery() {
-    return __privateGet(this, _currentQuery);
+    return this.#currentQuery;
   }
   refetch({ ...options } = {}) {
     return this.fetch({
@@ -186,28 +176,86 @@ var QueryObserver = class extends import_subscribable.Subscribable {
     });
   }
   fetchOptimistic(options) {
-    const defaultedOptions = __privateGet(this, _client).defaultQueryOptions(options);
-    const query = __privateGet(this, _client).getQueryCache().build(__privateGet(this, _client), defaultedOptions);
+    const defaultedOptions = this.#client.defaultQueryOptions(options);
+    const query = this.#client.getQueryCache().build(this.#client, defaultedOptions);
     return query.fetch().then(() => this.createResult(query, defaultedOptions));
   }
   fetch(fetchOptions) {
-    return __privateMethod(this, _QueryObserver_instances, executeFetch_fn).call(this, {
+    return this.#executeFetch({
       ...fetchOptions,
       cancelRefetch: fetchOptions.cancelRefetch ?? true
     }).then(() => {
       this.updateResult();
-      return __privateGet(this, _currentResult);
+      return this.#currentResult;
     });
   }
+  #executeFetch(fetchOptions) {
+    this.#updateQuery();
+    let promise = this.#currentQuery.fetch(
+      this.options,
+      fetchOptions
+    );
+    if (!fetchOptions?.throwOnError) {
+      promise = promise.catch(import_utils.noop);
+    }
+    return promise;
+  }
+  #updateStaleTimeout() {
+    this.#clearStaleTimeout();
+    const staleTime = (0, import_utils.resolveStaleTime)(
+      this.options.staleTime,
+      this.#currentQuery
+    );
+    if (import_utils.isServer || this.#currentResult.isStale || !(0, import_utils.isValidTimeout)(staleTime)) {
+      return;
+    }
+    const time = (0, import_utils.timeUntilStale)(this.#currentResult.dataUpdatedAt, staleTime);
+    const timeout = time + 1;
+    this.#staleTimeoutId = import_timeoutManager.timeoutManager.setTimeout(() => {
+      if (!this.#currentResult.isStale) {
+        this.updateResult();
+      }
+    }, timeout);
+  }
+  #computeRefetchInterval() {
+    return (typeof this.options.refetchInterval === "function" ? this.options.refetchInterval(this.#currentQuery) : this.options.refetchInterval) ?? false;
+  }
+  #updateRefetchInterval(nextInterval) {
+    this.#clearRefetchInterval();
+    this.#currentRefetchInterval = nextInterval;
+    if (import_utils.isServer || (0, import_utils.resolveEnabled)(this.options.enabled, this.#currentQuery) === false || !(0, import_utils.isValidTimeout)(this.#currentRefetchInterval) || this.#currentRefetchInterval === 0) {
+      return;
+    }
+    this.#refetchIntervalId = import_timeoutManager.timeoutManager.setInterval(() => {
+      if (this.options.refetchIntervalInBackground || import_focusManager.focusManager.isFocused()) {
+        this.#executeFetch();
+      }
+    }, this.#currentRefetchInterval);
+  }
+  #updateTimers() {
+    this.#updateStaleTimeout();
+    this.#updateRefetchInterval(this.#computeRefetchInterval());
+  }
+  #clearStaleTimeout() {
+    if (this.#staleTimeoutId) {
+      import_timeoutManager.timeoutManager.clearTimeout(this.#staleTimeoutId);
+      this.#staleTimeoutId = void 0;
+    }
+  }
+  #clearRefetchInterval() {
+    if (this.#refetchIntervalId) {
+      import_timeoutManager.timeoutManager.clearInterval(this.#refetchIntervalId);
+      this.#refetchIntervalId = void 0;
+    }
+  }
   createResult(query, options) {
-    var _a;
-    const prevQuery = __privateGet(this, _currentQuery);
+    const prevQuery = this.#currentQuery;
     const prevOptions = this.options;
-    const prevResult = __privateGet(this, _currentResult);
-    const prevResultState = __privateGet(this, _currentResultState);
-    const prevResultOptions = __privateGet(this, _currentResultOptions);
+    const prevResult = this.#currentResult;
+    const prevResultState = this.#currentResultState;
+    const prevResultOptions = this.#currentResultOptions;
     const queryChange = query !== prevQuery;
-    const queryInitialState = queryChange ? query.state : __privateGet(this, _currentQueryInitialState);
+    const queryInitialState = queryChange ? query.state : this.#currentQueryInitialState;
     const { state } = query;
     let newState = { ...state };
     let isPlaceholderData = false;
@@ -231,19 +279,19 @@ var QueryObserver = class extends import_subscribable.Subscribable {
     let skipSelect = false;
     if (options.placeholderData !== void 0 && data === void 0 && status === "pending") {
       let placeholderData;
-      if ((prevResult == null ? void 0 : prevResult.isPlaceholderData) && options.placeholderData === (prevResultOptions == null ? void 0 : prevResultOptions.placeholderData)) {
+      if (prevResult?.isPlaceholderData && options.placeholderData === prevResultOptions?.placeholderData) {
         placeholderData = prevResult.data;
         skipSelect = true;
       } else {
         placeholderData = typeof options.placeholderData === "function" ? options.placeholderData(
-          (_a = __privateGet(this, _lastQueryWithDefinedData)) == null ? void 0 : _a.state.data,
-          __privateGet(this, _lastQueryWithDefinedData)
+          this.#lastQueryWithDefinedData?.state.data,
+          this.#lastQueryWithDefinedData
         ) : options.placeholderData;
       }
       if (placeholderData !== void 0) {
         status = "success";
         data = (0, import_utils.replaceData)(
-          prevResult == null ? void 0 : prevResult.data,
+          prevResult?.data,
           placeholderData,
           options
         );
@@ -251,23 +299,23 @@ var QueryObserver = class extends import_subscribable.Subscribable {
       }
     }
     if (options.select && data !== void 0 && !skipSelect) {
-      if (prevResult && data === (prevResultState == null ? void 0 : prevResultState.data) && options.select === __privateGet(this, _selectFn)) {
-        data = __privateGet(this, _selectResult);
+      if (prevResult && data === prevResultState?.data && options.select === this.#selectFn) {
+        data = this.#selectResult;
       } else {
         try {
-          __privateSet(this, _selectFn, options.select);
+          this.#selectFn = options.select;
           data = options.select(data);
-          data = (0, import_utils.replaceData)(prevResult == null ? void 0 : prevResult.data, data, options);
-          __privateSet(this, _selectResult, data);
-          __privateSet(this, _selectError, null);
+          data = (0, import_utils.replaceData)(prevResult?.data, data, options);
+          this.#selectResult = data;
+          this.#selectError = null;
         } catch (selectError) {
-          __privateSet(this, _selectError, selectError);
+          this.#selectError = selectError;
         }
       }
     }
-    if (__privateGet(this, _selectError)) {
-      error = __privateGet(this, _selectError);
-      data = __privateGet(this, _selectResult);
+    if (this.#selectError) {
+      error = this.#selectError;
+      data = this.#selectResult;
       errorUpdatedAt = Date.now();
       status = "error";
     }
@@ -301,7 +349,7 @@ var QueryObserver = class extends import_subscribable.Subscribable {
       isRefetchError: isError && hasData,
       isStale: isStale(query, options),
       refetch: this.refetch,
-      promise: __privateGet(this, _currentThenable),
+      promise: this.#currentThenable,
       isEnabled: (0, import_utils.resolveEnabled)(options.enabled, query) !== false
     };
     const nextResult = result;
@@ -314,10 +362,10 @@ var QueryObserver = class extends import_subscribable.Subscribable {
         }
       };
       const recreateThenable = () => {
-        const pending = __privateSet(this, _currentThenable, nextResult.promise = (0, import_thenable.pendingThenable)());
+        const pending = this.#currentThenable = nextResult.promise = (0, import_thenable.pendingThenable)();
         finalizeThenableIfPossible(pending);
       };
-      const prevThenable = __privateGet(this, _currentThenable);
+      const prevThenable = this.#currentThenable;
       switch (prevThenable.status) {
         case "pending":
           if (query.queryHash === prevQuery.queryHash) {
@@ -339,147 +387,72 @@ var QueryObserver = class extends import_subscribable.Subscribable {
     return nextResult;
   }
   updateResult() {
-    const prevResult = __privateGet(this, _currentResult);
-    const nextResult = this.createResult(__privateGet(this, _currentQuery), this.options);
-    __privateSet(this, _currentResultState, __privateGet(this, _currentQuery).state);
-    __privateSet(this, _currentResultOptions, this.options);
-    if (__privateGet(this, _currentResultState).data !== void 0) {
-      __privateSet(this, _lastQueryWithDefinedData, __privateGet(this, _currentQuery));
+    const prevResult = this.#currentResult;
+    const nextResult = this.createResult(this.#currentQuery, this.options);
+    this.#currentResultState = this.#currentQuery.state;
+    this.#currentResultOptions = this.options;
+    if (this.#currentResultState.data !== void 0) {
+      this.#lastQueryWithDefinedData = this.#currentQuery;
     }
     if ((0, import_utils.shallowEqualObjects)(nextResult, prevResult)) {
       return;
     }
-    __privateSet(this, _currentResult, nextResult);
+    this.#currentResult = nextResult;
     const shouldNotifyListeners = () => {
       if (!prevResult) {
         return true;
       }
       const { notifyOnChangeProps } = this.options;
       const notifyOnChangePropsValue = typeof notifyOnChangeProps === "function" ? notifyOnChangeProps() : notifyOnChangeProps;
-      if (notifyOnChangePropsValue === "all" || !notifyOnChangePropsValue && !__privateGet(this, _trackedProps).size) {
+      if (notifyOnChangePropsValue === "all" || !notifyOnChangePropsValue && !this.#trackedProps.size) {
         return true;
       }
       const includedProps = new Set(
-        notifyOnChangePropsValue ?? __privateGet(this, _trackedProps)
+        notifyOnChangePropsValue ?? this.#trackedProps
       );
       if (this.options.throwOnError) {
         includedProps.add("error");
       }
-      return Object.keys(__privateGet(this, _currentResult)).some((key) => {
+      return Object.keys(this.#currentResult).some((key) => {
         const typedKey = key;
-        const changed = __privateGet(this, _currentResult)[typedKey] !== prevResult[typedKey];
+        const changed = this.#currentResult[typedKey] !== prevResult[typedKey];
         return changed && includedProps.has(typedKey);
       });
     };
-    __privateMethod(this, _QueryObserver_instances, notify_fn).call(this, { listeners: shouldNotifyListeners() });
+    this.#notify({ listeners: shouldNotifyListeners() });
+  }
+  #updateQuery() {
+    const query = this.#client.getQueryCache().build(this.#client, this.options);
+    if (query === this.#currentQuery) {
+      return;
+    }
+    const prevQuery = this.#currentQuery;
+    this.#currentQuery = query;
+    this.#currentQueryInitialState = query.state;
+    if (this.hasListeners()) {
+      prevQuery?.removeObserver(this);
+      query.addObserver(this);
+    }
   }
   onQueryUpdate() {
     this.updateResult();
     if (this.hasListeners()) {
-      __privateMethod(this, _QueryObserver_instances, updateTimers_fn).call(this);
+      this.#updateTimers();
     }
   }
-};
-_client = new WeakMap();
-_currentQuery = new WeakMap();
-_currentQueryInitialState = new WeakMap();
-_currentResult = new WeakMap();
-_currentResultState = new WeakMap();
-_currentResultOptions = new WeakMap();
-_currentThenable = new WeakMap();
-_selectError = new WeakMap();
-_selectFn = new WeakMap();
-_selectResult = new WeakMap();
-_lastQueryWithDefinedData = new WeakMap();
-_staleTimeoutId = new WeakMap();
-_refetchIntervalId = new WeakMap();
-_currentRefetchInterval = new WeakMap();
-_trackedProps = new WeakMap();
-_QueryObserver_instances = new WeakSet();
-executeFetch_fn = function(fetchOptions) {
-  __privateMethod(this, _QueryObserver_instances, updateQuery_fn).call(this);
-  let promise = __privateGet(this, _currentQuery).fetch(
-    this.options,
-    fetchOptions
-  );
-  if (!(fetchOptions == null ? void 0 : fetchOptions.throwOnError)) {
-    promise = promise.catch(import_utils.noop);
-  }
-  return promise;
-};
-updateStaleTimeout_fn = function() {
-  __privateMethod(this, _QueryObserver_instances, clearStaleTimeout_fn).call(this);
-  const staleTime = (0, import_utils.resolveStaleTime)(
-    this.options.staleTime,
-    __privateGet(this, _currentQuery)
-  );
-  if (import_utils.isServer || __privateGet(this, _currentResult).isStale || !(0, import_utils.isValidTimeout)(staleTime)) {
-    return;
-  }
-  const time = (0, import_utils.timeUntilStale)(__privateGet(this, _currentResult).dataUpdatedAt, staleTime);
-  const timeout = time + 1;
-  __privateSet(this, _staleTimeoutId, import_timeoutManager.timeoutManager.setTimeout(() => {
-    if (!__privateGet(this, _currentResult).isStale) {
-      this.updateResult();
-    }
-  }, timeout));
-};
-computeRefetchInterval_fn = function() {
-  return (typeof this.options.refetchInterval === "function" ? this.options.refetchInterval(__privateGet(this, _currentQuery)) : this.options.refetchInterval) ?? false;
-};
-updateRefetchInterval_fn = function(nextInterval) {
-  __privateMethod(this, _QueryObserver_instances, clearRefetchInterval_fn).call(this);
-  __privateSet(this, _currentRefetchInterval, nextInterval);
-  if (import_utils.isServer || (0, import_utils.resolveEnabled)(this.options.enabled, __privateGet(this, _currentQuery)) === false || !(0, import_utils.isValidTimeout)(__privateGet(this, _currentRefetchInterval)) || __privateGet(this, _currentRefetchInterval) === 0) {
-    return;
-  }
-  __privateSet(this, _refetchIntervalId, import_timeoutManager.timeoutManager.setInterval(() => {
-    if (this.options.refetchIntervalInBackground || import_focusManager.focusManager.isFocused()) {
-      __privateMethod(this, _QueryObserver_instances, executeFetch_fn).call(this);
-    }
-  }, __privateGet(this, _currentRefetchInterval)));
-};
-updateTimers_fn = function() {
-  __privateMethod(this, _QueryObserver_instances, updateStaleTimeout_fn).call(this);
-  __privateMethod(this, _QueryObserver_instances, updateRefetchInterval_fn).call(this, __privateMethod(this, _QueryObserver_instances, computeRefetchInterval_fn).call(this));
-};
-clearStaleTimeout_fn = function() {
-  if (__privateGet(this, _staleTimeoutId)) {
-    import_timeoutManager.timeoutManager.clearTimeout(__privateGet(this, _staleTimeoutId));
-    __privateSet(this, _staleTimeoutId, void 0);
-  }
-};
-clearRefetchInterval_fn = function() {
-  if (__privateGet(this, _refetchIntervalId)) {
-    import_timeoutManager.timeoutManager.clearInterval(__privateGet(this, _refetchIntervalId));
-    __privateSet(this, _refetchIntervalId, void 0);
-  }
-};
-updateQuery_fn = function() {
-  const query = __privateGet(this, _client).getQueryCache().build(__privateGet(this, _client), this.options);
-  if (query === __privateGet(this, _currentQuery)) {
-    return;
-  }
-  const prevQuery = __privateGet(this, _currentQuery);
-  __privateSet(this, _currentQuery, query);
-  __privateSet(this, _currentQueryInitialState, query.state);
-  if (this.hasListeners()) {
-    prevQuery == null ? void 0 : prevQuery.removeObserver(this);
-    query.addObserver(this);
-  }
-};
-notify_fn = function(notifyOptions) {
-  import_notifyManager.notifyManager.batch(() => {
-    if (notifyOptions.listeners) {
-      this.listeners.forEach((listener) => {
-        listener(__privateGet(this, _currentResult));
+  #notify(notifyOptions) {
+    import_notifyManager.notifyManager.batch(() => {
+      if (notifyOptions.listeners) {
+        this.listeners.forEach((listener) => {
+          listener(this.#currentResult);
+        });
+      }
+      this.#client.getQueryCache().notify({
+        query: this.#currentQuery,
+        type: "observerResultsUpdated"
       });
-    }
-    __privateGet(this, _client).getQueryCache().notify({
-      query: __privateGet(this, _currentQuery),
-      type: "observerResultsUpdated"
     });
-  });
+  }
 };
 function shouldLoadOnMount(query, options) {
   return (0, import_utils.resolveEnabled)(options.enabled, query) !== false && query.state.data === void 0 && !(query.state.status === "error" && options.retryOnMount === false);

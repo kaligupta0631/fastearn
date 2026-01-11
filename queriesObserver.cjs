@@ -3,9 +3,6 @@ var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __typeError = (msg) => {
-  throw TypeError(msg);
-};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -19,11 +16,6 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
-var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
-var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
-var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
-var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
 
 // src/queriesObserver.ts
 var queriesObserver_exports = {};
@@ -44,32 +36,30 @@ function replaceAt(array, index, value) {
   copy[index] = value;
   return copy;
 }
-var _client, _result, _queries, _options, _observers, _combinedResult, _lastCombine, _lastResult, _observerMatches, _QueriesObserver_instances, trackResult_fn, combineResult_fn, findMatchingObservers_fn, onUpdate_fn, notify_fn;
 var QueriesObserver = class extends import_subscribable.Subscribable {
+  #client;
+  #result;
+  #queries;
+  #options;
+  #observers;
+  #combinedResult;
+  #lastCombine;
+  #lastResult;
+  #observerMatches = [];
   constructor(client, queries, options) {
     super();
-    __privateAdd(this, _QueriesObserver_instances);
-    __privateAdd(this, _client);
-    __privateAdd(this, _result);
-    __privateAdd(this, _queries);
-    __privateAdd(this, _options);
-    __privateAdd(this, _observers);
-    __privateAdd(this, _combinedResult);
-    __privateAdd(this, _lastCombine);
-    __privateAdd(this, _lastResult);
-    __privateAdd(this, _observerMatches, []);
-    __privateSet(this, _client, client);
-    __privateSet(this, _options, options);
-    __privateSet(this, _queries, []);
-    __privateSet(this, _observers, []);
-    __privateSet(this, _result, []);
+    this.#client = client;
+    this.#options = options;
+    this.#queries = [];
+    this.#observers = [];
+    this.#result = [];
     this.setQueries(queries);
   }
   onSubscribe() {
     if (this.listeners.size === 1) {
-      __privateGet(this, _observers).forEach((observer) => {
+      this.#observers.forEach((observer) => {
         observer.subscribe((result) => {
-          __privateMethod(this, _QueriesObserver_instances, onUpdate_fn).call(this, observer, result);
+          this.#onUpdate(observer, result);
         });
       });
     }
@@ -81,16 +71,16 @@ var QueriesObserver = class extends import_subscribable.Subscribable {
   }
   destroy() {
     this.listeners = /* @__PURE__ */ new Set();
-    __privateGet(this, _observers).forEach((observer) => {
+    this.#observers.forEach((observer) => {
       observer.destroy();
     });
   }
   setQueries(queries, options) {
-    __privateSet(this, _queries, queries);
-    __privateSet(this, _options, options);
+    this.#queries = queries;
+    this.#options = options;
     if (process.env.NODE_ENV !== "production") {
       const queryHashes = queries.map(
-        (query) => __privateGet(this, _client).defaultQueryOptions(query).queryHash
+        (query) => this.#client.defaultQueryOptions(query).queryHash
       );
       if (new Set(queryHashes).size !== queryHashes.length) {
         console.warn(
@@ -99,8 +89,8 @@ var QueriesObserver = class extends import_subscribable.Subscribable {
       }
     }
     import_notifyManager.notifyManager.batch(() => {
-      const prevObservers = __privateGet(this, _observers);
-      const newObserverMatches = __privateMethod(this, _QueriesObserver_instances, findMatchingObservers_fn).call(this, __privateGet(this, _queries));
+      const prevObservers = this.#observers;
+      const newObserverMatches = this.#findMatchingObservers(this.#queries);
       newObserverMatches.forEach(
         (match) => match.observer.setOptions(match.defaultedQueryOptions)
       );
@@ -114,15 +104,15 @@ var QueriesObserver = class extends import_subscribable.Subscribable {
       );
       const hasStructuralChange = hasLengthChange || hasIndexChange;
       const hasResultChange = hasStructuralChange ? true : newResult.some((result, index) => {
-        const prev = __privateGet(this, _result)[index];
+        const prev = this.#result[index];
         return !prev || !(0, import_utils.shallowEqualObjects)(result, prev);
       });
       if (!hasStructuralChange && !hasResultChange) return;
       if (hasStructuralChange) {
-        __privateSet(this, _observerMatches, newObserverMatches);
-        __privateSet(this, _observers, newObservers);
+        this.#observerMatches = newObserverMatches;
+        this.#observers = newObservers;
       }
-      __privateSet(this, _result, newResult);
+      this.#result = newResult;
       if (!this.hasListeners()) return;
       if (hasStructuralChange) {
         difference(prevObservers, newObservers).forEach((observer) => {
@@ -130,116 +120,104 @@ var QueriesObserver = class extends import_subscribable.Subscribable {
         });
         difference(newObservers, prevObservers).forEach((observer) => {
           observer.subscribe((result) => {
-            __privateMethod(this, _QueriesObserver_instances, onUpdate_fn).call(this, observer, result);
+            this.#onUpdate(observer, result);
           });
         });
       }
-      __privateMethod(this, _QueriesObserver_instances, notify_fn).call(this);
+      this.#notify();
     });
   }
   getCurrentResult() {
-    return __privateGet(this, _result);
+    return this.#result;
   }
   getQueries() {
-    return __privateGet(this, _observers).map((observer) => observer.getCurrentQuery());
+    return this.#observers.map((observer) => observer.getCurrentQuery());
   }
   getObservers() {
-    return __privateGet(this, _observers);
+    return this.#observers;
   }
   getOptimisticResult(queries, combine) {
-    const matches = __privateMethod(this, _QueriesObserver_instances, findMatchingObservers_fn).call(this, queries);
+    const matches = this.#findMatchingObservers(queries);
     const result = matches.map(
       (match) => match.observer.getOptimisticResult(match.defaultedQueryOptions)
     );
     return [
       result,
       (r) => {
-        return __privateMethod(this, _QueriesObserver_instances, combineResult_fn).call(this, r ?? result, combine);
+        return this.#combineResult(r ?? result, combine);
       },
       () => {
-        return __privateMethod(this, _QueriesObserver_instances, trackResult_fn).call(this, result, matches);
+        return this.#trackResult(result, matches);
       }
     ];
   }
-};
-_client = new WeakMap();
-_result = new WeakMap();
-_queries = new WeakMap();
-_options = new WeakMap();
-_observers = new WeakMap();
-_combinedResult = new WeakMap();
-_lastCombine = new WeakMap();
-_lastResult = new WeakMap();
-_observerMatches = new WeakMap();
-_QueriesObserver_instances = new WeakSet();
-trackResult_fn = function(result, matches) {
-  return matches.map((match, index) => {
-    const observerResult = result[index];
-    return !match.defaultedQueryOptions.notifyOnChangeProps ? match.observer.trackResult(observerResult, (accessedProp) => {
-      matches.forEach((m) => {
-        m.observer.trackProp(accessedProp);
-      });
-    }) : observerResult;
-  });
-};
-combineResult_fn = function(input, combine) {
-  if (combine) {
-    if (!__privateGet(this, _combinedResult) || __privateGet(this, _result) !== __privateGet(this, _lastResult) || combine !== __privateGet(this, _lastCombine)) {
-      __privateSet(this, _lastCombine, combine);
-      __privateSet(this, _lastResult, __privateGet(this, _result));
-      __privateSet(this, _combinedResult, (0, import_utils.replaceEqualDeep)(
-        __privateGet(this, _combinedResult),
-        combine(input)
-      ));
-    }
-    return __privateGet(this, _combinedResult);
-  }
-  return input;
-};
-findMatchingObservers_fn = function(queries) {
-  const prevObserversMap = /* @__PURE__ */ new Map();
-  __privateGet(this, _observers).forEach((observer) => {
-    const key = observer.options.queryHash;
-    if (!key) return;
-    const previousObservers = prevObserversMap.get(key);
-    if (previousObservers) {
-      previousObservers.push(observer);
-    } else {
-      prevObserversMap.set(key, [observer]);
-    }
-  });
-  const observers = [];
-  queries.forEach((options) => {
-    var _a;
-    const defaultedOptions = __privateGet(this, _client).defaultQueryOptions(options);
-    const match = (_a = prevObserversMap.get(defaultedOptions.queryHash)) == null ? void 0 : _a.shift();
-    const observer = match ?? new import_queryObserver.QueryObserver(__privateGet(this, _client), defaultedOptions);
-    observers.push({
-      defaultedQueryOptions: defaultedOptions,
-      observer
-    });
-  });
-  return observers;
-};
-onUpdate_fn = function(observer, result) {
-  const index = __privateGet(this, _observers).indexOf(observer);
-  if (index !== -1) {
-    __privateSet(this, _result, replaceAt(__privateGet(this, _result), index, result));
-    __privateMethod(this, _QueriesObserver_instances, notify_fn).call(this);
-  }
-};
-notify_fn = function() {
-  var _a;
-  if (this.hasListeners()) {
-    const previousResult = __privateGet(this, _combinedResult);
-    const newTracked = __privateMethod(this, _QueriesObserver_instances, trackResult_fn).call(this, __privateGet(this, _result), __privateGet(this, _observerMatches));
-    const newResult = __privateMethod(this, _QueriesObserver_instances, combineResult_fn).call(this, newTracked, (_a = __privateGet(this, _options)) == null ? void 0 : _a.combine);
-    if (previousResult !== newResult) {
-      import_notifyManager.notifyManager.batch(() => {
-        this.listeners.forEach((listener) => {
-          listener(__privateGet(this, _result));
+  #trackResult(result, matches) {
+    return matches.map((match, index) => {
+      const observerResult = result[index];
+      return !match.defaultedQueryOptions.notifyOnChangeProps ? match.observer.trackResult(observerResult, (accessedProp) => {
+        matches.forEach((m) => {
+          m.observer.trackProp(accessedProp);
         });
+      }) : observerResult;
+    });
+  }
+  #combineResult(input, combine) {
+    if (combine) {
+      if (!this.#combinedResult || this.#result !== this.#lastResult || combine !== this.#lastCombine) {
+        this.#lastCombine = combine;
+        this.#lastResult = this.#result;
+        this.#combinedResult = (0, import_utils.replaceEqualDeep)(
+          this.#combinedResult,
+          combine(input)
+        );
+      }
+      return this.#combinedResult;
+    }
+    return input;
+  }
+  #findMatchingObservers(queries) {
+    const prevObserversMap = /* @__PURE__ */ new Map();
+    this.#observers.forEach((observer) => {
+      const key = observer.options.queryHash;
+      if (!key) return;
+      const previousObservers = prevObserversMap.get(key);
+      if (previousObservers) {
+        previousObservers.push(observer);
+      } else {
+        prevObserversMap.set(key, [observer]);
+      }
+    });
+    const observers = [];
+    queries.forEach((options) => {
+      const defaultedOptions = this.#client.defaultQueryOptions(options);
+      const match = prevObserversMap.get(defaultedOptions.queryHash)?.shift();
+      const observer = match ?? new import_queryObserver.QueryObserver(this.#client, defaultedOptions);
+      observers.push({
+        defaultedQueryOptions: defaultedOptions,
+        observer
       });
+    });
+    return observers;
+  }
+  #onUpdate(observer, result) {
+    const index = this.#observers.indexOf(observer);
+    if (index !== -1) {
+      this.#result = replaceAt(this.#result, index, result);
+      this.#notify();
+    }
+  }
+  #notify() {
+    if (this.hasListeners()) {
+      const previousResult = this.#combinedResult;
+      const newTracked = this.#trackResult(this.#result, this.#observerMatches);
+      const newResult = this.#combineResult(newTracked, this.#options?.combine);
+      if (previousResult !== newResult) {
+        import_notifyManager.notifyManager.batch(() => {
+          this.listeners.forEach((listener) => {
+            listener(this.#result);
+          });
+        });
+      }
     }
   }
 };

@@ -1,5 +1,3 @@
-import "./chunk-PXG64RU4.js";
-
 // src/notifyManager.ts
 import { systemSetTimeoutZero } from "./timeoutManager.js";
 var defaultScheduler = systemSetTimeoutZero;
